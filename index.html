@@ -1,213 +1,134 @@
 <!DOCTYPE html>
-
 <html lang="ro">
-
 <head>
-
     <meta charset="UTF-8">
-
     <title>ECHO RT - Command Center</title>
-
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <style>
-
         :root {
-
             --bg: #020617; --card: #0f172a; --cyan: #00f2ff;
-
             --green: #22c55e; --orange: #f59e0b; --red: #ef4444;
-
-            --text: #f8fafc;
-
+            --text: #f8fafc; --subtext: #64748b;
+        }
+        body { 
+            background-color: var(--bg); color: var(--text); 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 40px 20px; margin: 0;
+        }
+        
+        /* Header cu Ceas Live */
+        .header { text-align: center; margin-bottom: 40px; }
+        .live-clock { 
+            font-family: 'Courier New', monospace; 
+            color: var(--subtext); font-size: 1.2rem; margin-top: 5px;
         }
 
-        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; margin-top: 20px; }
-
-        .card { background: var(--card); border: 1px solid #1e293b; padding: 25px; border-radius: 16px; text-align: center; }
-
-        .journal-card { grid-column: 1; text-align: left; min-height: 450px; }
-
-        .value { font-size: 3.2rem; font-weight: 800; display: block; }
-
+        .dashboard { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; 
+            width: 100%; max-width: 800px; 
+        }
+        .card { 
+            background: var(--card); border: 1px solid #1e293b; 
+            padding: 30px; border-radius: 20px; text-align: center; 
+            display: flex; flex-direction: column; justify-content: center;
+        }
         
+        .full-width { grid-column: 1 / span 2; }
+        
+        .label { color: var(--subtext); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 10px; }
+        .value { font-size: 3rem; font-weight: 800; display: block; line-height: 1; }
+        .small-value { font-size: 1.8rem; color: var(--cyan); font-family: 'Courier New', monospace; }
 
-        /* Culori Status */
-
+        /* Status Colors */
         .st-siguranta { color: var(--green); }
-
         .st-obstacol { color: var(--orange); }
-
         .st-pericol { color: var(--red); animation: pulse 1s infinite; }
 
-
-
-        .log-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'Courier New', monospace; font-size: 1.1rem; }
-
-        .badge { background: rgba(0, 242, 255, 0.1); color: var(--cyan); padding: 2px 6px; border-radius: 4px; margin-right: 10px; }
-
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
-
 </head>
-
 <body>
 
-
-
-    <h1 style="color: var(--cyan); letter-spacing: 4px; text-transform: uppercase;">ECHO <span style="color:white">RT MONITOR</span></h1>
-
-
-
-    <div class="dashboard">
-
-        <div class="card journal-card">
-
-            <span style="color: #64748b; text-transform: uppercase; font-size: 0.8rem;">Jurnal Detecție Buton</span>
-
-            <div id="journal" style="margin-top: 15px;"></div>
-
-        </div>
-
-
-
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-
-            <div class="card">
-
-                <span style="color: #64748b; font-size: 0.8rem;">DISTANȚĂ</span>
-
-                <span id="dist-val" class="value">-- cm</span>
-
-            </div>
-
-            <div class="card">
-
-                <span style="color: #64748b; font-size: 0.8rem;">STARE SISTEM</span>
-
-                <span id="status-val" class="value" style="font-size: 2.2rem;">---</span>
-
-            </div>
-
-        </div>
-
+    <div class="header">
+        <h1 style="color: var(--cyan); letter-spacing: 5px; margin: 0;">ECHO RT</h1>
+        <div id="live-clock" class="live-clock">00:00:00</div>
     </div>
 
+    <div class="dashboard">
+        <div class="card">
+            <span class="label">Distanță Senzor</span>
+            <span id="dist-val" class="value">-- cm</span>
+        </div>
 
+        <div class="card">
+            <span class="label">Stare Sistem</span>
+            <span id="status-val" class="value" style="font-size: 1.8rem;">---</span>
+        </div>
+
+        <div class="card full-width">
+            <span class="label">Ultimul eveniment detectat</span>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px;">
+                <span style="background: rgba(0,242,255,0.1); color: var(--cyan); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem;">BUTON APĂSAT</span>
+                <span id="last-press" class="small-value">Nicio înregistrare</span>
+            </div>
+        </div>
+    </div>
 
     <script>
-
         const firebaseConfig = { databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app/" };
-
         firebase.initializeApp(firebaseConfig);
-
         const db = firebase.database();
 
+        // 1. CEAS LIVE (DISCRET)
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('ro-RO');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-
-        // 1. LOGICA STATUS (CONFORM NOILOR REGULI)
-
+        // 2. LOGICA DISTANTA SI STATUS
         db.ref('sistem').on('value', (snapshot) => {
-
             const data = snapshot.val();
-
             if(!data) return;
 
-
-
             const dist = data.distanta;
-
             const dv = document.getElementById('dist-val');
-
             const sv = document.getElementById('status-val');
-
             
-
             dv.innerText = dist + " cm";
 
-
-
             if (dist <= 10 && dist > 0) {
-
                 sv.innerText = "PERICOL";
-
                 sv.className = "value st-pericol";
-
                 dv.className = "value st-pericol";
-
-            } 
-
-            else if (dist > 10 && dist <= 100) {
-
+            } else if (dist > 10 && dist <= 100) {
                 sv.innerText = "OBSTACOL";
-
                 sv.className = "value st-obstacol";
-
                 dv.className = "value st-obstacol";
-
-            } 
-
-            else {
-
+            } else {
                 sv.innerText = "SIGURANȚĂ";
-
                 sv.className = "value st-siguranta";
-
                 dv.className = "value st-siguranta";
-
             }
-
         });
 
-
-
-        // 2. LOGICA JURNAL (AFIȘEAZĂ ORA REALĂ A COMPUTERULUI)
-
-        const journalDiv = document.getElementById('journal');
-
-
-
-        // Ascultăm doar intrările noi pentru a pune ora exactă a recepției
-
-        db.ref('jurnal').limitToLast(10).on('child_added', (snapshot) => {
-
+        // 3. LOGICA ULTIMA APĂSARE (Afișează doar ora ultimei intrări)
+        db.ref('jurnal').limitToLast(1).on('child_added', (snapshot) => {
             const now = new Date();
-
             const oraLocala = now.getHours().toString().padStart(2, '0') + ":" + 
-
                              now.getMinutes().toString().padStart(2, '0') + ":" + 
-
                              now.getSeconds().toString().padStart(2, '0');
 
-
-
-            const logItem = document.createElement('div');
-
-            logItem.className = 'log-item';
-
-            logItem.innerHTML = `
-
-                <span><span class="badge">BUTON</span> APĂSAT</span>
-
-                <span style="color: var(--cyan)">${oraLocala}</span>
-
-            `;
-
+            const lastPressEl = document.getElementById('last-press');
+            lastPressEl.innerText = oraLocala;
             
-
-            // Adăugăm noua intrare la începutul listei
-
-            journalDiv.insertBefore(logItem, journalDiv.firstChild);
-
+            // Mic efect vizual de "flash" când se actualizează
+            lastPressEl.style.color = "white";
+            setTimeout(() => { lastPressEl.style.color = "var(--cyan)"; }, 500);
         });
-
     </script>
-
 </body>
-
 </html>

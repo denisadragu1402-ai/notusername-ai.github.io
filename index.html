@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO Dashboard - Prototip Live</title>
+    <title>ECHO Dashboard - Live Cloud</title>
     <style>
         :root {
             --bg-color: #0a192f;
@@ -15,7 +15,7 @@
         }
 
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-family: 'Segoe UI', sans-serif; 
             background-color: var(--bg-color); 
             color: var(--text-main); 
             display: flex; 
@@ -27,119 +27,98 @@
 
         .container { 
             background: var(--container-bg); 
-            padding: 2rem; 
+            padding: 2.5rem; 
             border-radius: 20px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
             border-top: 5px solid var(--accent-color); 
-            width: 350px; 
+            width: 360px; 
             text-align: center;
         }
 
-        h1 { color: var(--accent-color); font-size: 1.8rem; margin-bottom: 0.2rem; }
-        .subtitle { color: var(--text-dim); font-size: 0.8rem; margin-bottom: 2rem; display: block; }
+        h1 { color: var(--accent-color); font-size: 1.8rem; margin-bottom: 0.2rem; letter-spacing: 2px; }
+        .subtitle { color: var(--text-dim); font-size: 0.7rem; margin-bottom: 2rem; display: block; text-transform: uppercase; letter-spacing: 1px;}
 
-        .stat-box {
-            background: rgba(2, 12, 27, 0.4);
+        .stat-card {
+            background: rgba(2, 12, 27, 0.5);
             padding: 1.5rem;
-            border-radius: 10px;
+            border-radius: 12px;
             margin-bottom: 1rem;
             border: 1px solid #233554;
-        }
-
-        .label { display: block; color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 1px; }
-        .value { font-family: 'Courier New', monospace; font-size: 2.2rem; font-weight: bold; }
-
-        .status-ok { color: var(--accent-color); }
-        .status-alert { color: var(--alert-color); animation: blink 1s infinite; }
-
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-        .btn-connect {
-            background: transparent;
-            border: 2px solid var(--accent-color);
-            color: var(--accent-color);
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 1rem;
             transition: 0.3s;
         }
 
-        .btn-connect:hover { background: rgba(100, 255, 218, 0.1); }
-        
-        #connection-log { font-size: 0.7rem; color: #8892b0; margin-top: 1rem; }
+        .label { display: block; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.8rem; }
+        .value { font-family: 'Courier New', monospace; font-size: 2.8rem; font-weight: bold; color: var(--text-main); }
+
+        .status-ok { color: var(--accent-color); }
+        .status-alert { color: var(--alert-color); text-shadow: 0 0 10px var(--alert-color); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        .sync-box { margin-top: 1.5rem; font-size: 0.7rem; color: var(--text-dim); border-top: 1px solid #233554; padding-top: 1rem; }
+        #last-update { color: var(--accent-color); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>ECHO SYSTEM</h1>
-    <span class="subtitle">INTERFAȚĂ ASISTENT AVANSAT V1.0</span>
+    <span class="subtitle">IoT Cloud Monitor V1.0</span>
 
-    <div class="stat-box">
+    <div class="stat-card">
         <span class="label">Distanță Obstacol</span>
         <span id="distanta" class="value">-- cm</span>
     </div>
 
-    <div class="stat-box">
-        <span class="label">Stare Alertă</span>
-        <span id="alerta" class="value status-ok">NOMINAL</span>
+    <div class="stat-card">
+        <span class="label">Status Perimetru</span>
+        <span id="alerta" class="value status-ok">SCANARE</span>
     </div>
 
-    <button class="btn-connect" onclick="connectSerial()">CONECTEAZĂ ROBOT</button>
-    <p id="connection-log">Așteptare conexiune USB...</p>
+    <div class="sync-box">
+        Ultima actualizare Cloud: <span id="last-update">Așteptare...</span>
+    </div>
 </div>
 
 <script>
-    async function connectSerial() {
-        const log = document.getElementById('connection-log');
+    // --- DATELE TALE CONFIGURATE ---
+    const CHANNEL_ID = '3325389';
+    const READ_API_KEY = '446NMXGKO5WC319U';
+
+    async function fetchData() {
+        const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/1/last.json?api_key=${READ_API_KEY}`;
+
         try {
-            // Pas 1: Solicitare acces Port Serial
-            const port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 9600 }); // VITEZA TREBUIE SĂ FIE 9600 ca în Arduino
+            const response = await fetch(url);
+            const data = await response.json();
 
-            log.innerText = "Conectat la Arduino Mega!";
-            log.style.color = "#64ffda";
-
-            // Pas 2: Citire flux de date
-            const textDecoder = new TextDecoderStream();
-            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            const reader = textDecoder.readable.getReader();
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) {
-                    reader.releaseLock();
-                    break;
-                }
-                if (value) {
-                    processData(value.trim());
-                }
+            if (data && data.field1 !== null) {
+                updateInterface(parseInt(data.field1), data.created_at);
             }
         } catch (error) {
-            log.innerText = "Eroare: " + error.message;
-            log.style.color = "#f44336";
+            console.error("Eroare la sincronizare:", error);
         }
     }
 
-    function processData(data) {
-        const distance = parseInt(data);
-        if (isNaN(distance)) return;
-
-        // Actualizare interfață
-        document.getElementById('distanta').innerText = distance + " cm";
+    function updateInterface(dist, time) {
+        document.getElementById('distanta').innerText = dist + " cm";
         
         const alertaEl = document.getElementById('alerta');
-        if (distance < 50 && distance > 0) {
+        if (dist < 50 && dist > 0) {
             alertaEl.innerText = "PERICOL";
             alertaEl.className = "value status-alert";
         } else {
             alertaEl.innerText = "NOMINAL";
             alertaEl.className = "value status-ok";
         }
-    }
-</script>
 
+        const date = new Date(time);
+        document.getElementById('last-update').innerText = date.toLocaleTimeString();
+    }
+
+    // ThingSpeak Free are limita de 15 secunde
+    setInterval(fetchData, 15500); 
+    fetchData(); 
+</script>
 </body>
 </html>

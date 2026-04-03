@@ -114,4 +114,133 @@
             color: #79a6ff;
             padding: 2px 8px;
             border-radius: 4px;
-            font-size:
+            font-size: 0.7rem;
+            margin-right: 10px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* Scrollbar subtil */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-cyan); }
+    </style>
+</head>
+<body>
+
+    <h1>ECHO COMMAND CENTER</h1>
+
+    <div class="dashboard">
+        <div class="card">
+            <span class="label">Radar Distanță</span>
+            <span id="distanta" class="value">-- cm</span>
+        </div>
+
+        <div class="card">
+            <span class="label">Monitor Perimetru</span>
+            <span id="status" class="value status-ok">SCANNING</span>
+        </div>
+
+        <div class="journal-container card">
+            <div class="journal-header">
+                <span>JURNAL ACTIVITATE BUTON</span>
+                <span style="font-size: 0.7rem;">ULTIMELE 10 INTRĂRI</span>
+            </div>
+            <ul id="journal-list" class="journal-list">
+                <li class="journal-entry" style="color: var(--text-dim);">Se încarcă datele...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        SYNC_TOKEN: <span id="sync-time">--:--:--</span> | STARE_SISTEM: ACTIV
+    </div>
+
+    <script>
+        const channelID = '3325389';
+        const readKey = '446NMXGKO5WC319U';
+
+        async function updateDashboard() {
+            // Cerem ultimele 10 rezultate ca să avem istoric pentru jurnal
+            const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?results=10&api_key=${readKey}&nocache=${Date.now()}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.feeds && data.feeds.length > 0) {
+                    const lastFeed = data.feeds[data.feeds.length - 1];
+                    
+                    // 1. Update Senzor Distanta
+                    const dist = parseInt(lastFeed.field1);
+                    document.getElementById('distanta').innerText = dist + " cm";
+
+                    // 2. Update Status Perimetru
+                    const statusEl = document.getElementById('status');
+                    if (dist <= 10 && dist > 0) {
+                        statusEl.innerText = "PERICOL";
+                        statusEl.className = "value status-alert";
+                    } else {
+                        statusEl.innerText = "NOMINAL";
+                        statusEl.className = "value status-ok";
+                    }
+
+                    // 3. Update Jurnal Buton (Field 2)
+                    updateJournal(data.feeds);
+
+                    // 4. Update Footer Time
+                    document.getElementById('sync-time').innerText = new Date(lastFeed.created_at).toLocaleTimeString();
+                }
+            } catch (error) {
+                console.error("Eroare comunicatie:", error);
+            }
+        }
+
+        function updateJournal(feeds) {
+            const listEl = document.getElementById('journal-list');
+            listEl.innerHTML = ""; // Curatam lista
+
+            // Inversam feeds ca sa apara cel mai nou sus
+            const reversedFeeds = [...feeds].reverse();
+
+            let entriesFound = 0;
+
+            reversedFeeds.forEach(feed => {
+                // Verificam daca Field 2 are valoare (Buton apasat)
+                // Poti schimba conditia in functie de ce trimite Arduino (ex: if feed.field2 == "1")
+                if (feed.field2 !== null) {
+                    const date = new Date(feed.created_at);
+                    const dateStr = date.toLocaleDateString();
+                    const timeStr = date.toLocaleTimeString();
+
+                    const li = document.createElement('li');
+                    li.className = 'journal-entry';
+                    li.innerHTML = `
+                        <span><span class="tag-button">BUTON</span> ${dateStr}</span>
+                        <span style="color: var(--accent-cyan);">${timeStr}</span>
+                    `;
+                    listEl.appendChild(li);
+                    entriesFound++;
+                }
+            });
+
+            if (entriesFound === 0) {
+                listEl.innerHTML = "<li class='journal-entry'>Nicio activitate înregistrată pe Buton.</li>";
+            }
+        }
+
+        // Refresh la 16 secunde
+        setInterval(updateDashboard, 16000);
+        updateDashboard();
+    </script>
+</body>
+</html>

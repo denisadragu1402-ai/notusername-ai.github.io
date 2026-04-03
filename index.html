@@ -3,64 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO - Monitorizare Prototip</title>
+    <title>ECHO Dashboard - Prototip Hackathon</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a192f; color: #e6f1ff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: #112240; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-left: 5px solid #64ffda; width: 350px; }
-        h1 { color: #64ffda; font-size: 1.5rem; margin-bottom: 1.5rem; text-align: center; border-bottom: 1px solid #233554; padding-bottom: 0.5rem; }
-        .stat { margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
-        .label { font-weight: bold; color: #8892b0; text-transform: uppercase; font-size: 0.8rem; }
-        .value { font-family: 'Courier New', Courier, monospace; font-size: 1.2rem; color: #ccd6f6; }
-        .status-ok { color: #64ffda; }
-        .status-alert { color: #f44336; font-weight: bold; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        :root {
+            --bg-color: #0a192f;
+            --container-bg: #112240;
+            --accent-color: #64ffda;
+            --text-main: #ccd6f6;
+            --text-dim: #8892b0;
+            --alert-color: #f44336;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow: hidden;
+        }
+
+        .container { 
+            background: var(--container-bg); 
+            padding: 2.5rem; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
+            border-top: 4px solid var(--accent-color); 
+            width: 90%;
+            max-width: 400px; 
+            text-align: center;
+        }
+
+        h1 { 
+            color: var(--accent-color); 
+            font-size: 1.8rem; 
+            margin-bottom: 0.5rem; 
+            letter-spacing: 2px;
+        }
+
+        .version {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+            display: block;
+        }
+
+        .stat-card {
+            background: rgba(2, 12, 27, 0.5);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid #233554;
+            transition: all 0.3s ease;
+        }
+
+        .label { 
+            display: block;
+            font-weight: bold; 
+            color: var(--text-dim); 
+            text-transform: uppercase; 
+            font-size: 0.75rem; 
+            margin-bottom: 0.5rem;
+        }
+
+        .value { 
+            font-family: 'Share Tech Mono', 'Courier New', monospace; 
+            font-size: 2rem; 
+            color: var(--text-main); 
+        }
+
+        .status-ok { color: var(--accent-color); }
+        
+        .status-alert { 
+            color: var(--alert-color); 
+            text-shadow: 0 0 10px var(--alert-color);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        .btn-connect {
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 1.5rem;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-connect:hover {
+            background: rgba(100, 255, 218, 0.1);
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
+        }
+
+        .footer-note {
+            margin-top: 1.5rem;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>ECHO SYSTEM V1.0</h1>
+    <h1>ECHO SYSTEM</h1>
+    <span class="version">ADVANCED ASSISTANT V1.0 | LIVE STREAM</span>
     
-    <div class="stat">
-        <span class="label">Senzor Obstacol:</span>
+    <div class="stat-card">
+        <span class="label">Distanță Obstacol</span>
         <span id="distanta" class="value">-- cm</span>
     </div>
 
-    <div class="stat">
-        <span class="label">Stare Alertă:</span>
+    <div class="stat-card">
+        <span class="label">Stare Sistem</span>
         <span id="alerta" class="value status-ok">NOMINAL</span>
     </div>
 
-    <div class="stat">
-        <span class="label">Răspuns Utilizator:</span>
-        <span id="vocal" class="value">AȘTEPTARE...</span>
+    <div class="stat-card">
+        <span class="label">Comunicare Cloud</span>
+        <span id="vocal" class="value" style="font-size: 1rem;">DECONECTAT</span>
     </div>
 
-    <div class="stat">
-        <span class="label">Conexiune Cloud:</span>
-        <span class="value status-ok">ONLINE</span>
+    <button class="btn-connect" onclick="conecteazaArduino()">Conectează Robot</button>
+
+    <div class="footer-note">
+        GitHub Pages Secured Connection via WebSerial API
     </div>
 </div>
 
 <script>
-    // Exemplu de funcție care ar actualiza datele primite de la Arduino (via API/Websocket)
-    function updateData(dist, status, voice) {
+    async function conecteazaArduino() {
+        try {
+            // Pas 1: Cere permisiunea pentru portul Serial
+            const port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 });
+            
+            document.getElementById('vocal').innerText = "ONLINE";
+            document.getElementById('vocal').className = "value status-ok";
+
+            // Pas 2: Citește fluxul de date
+            const decoder = new TextDecoderStream();
+            const inputClosed = port.readable.pipeTo(decoder.writable);
+            const inputStream = decoder.readable;
+            const reader = inputStream.getReader();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    reader.releaseLock();
+                    break;
+                }
+                if (value) {
+                    updateInterface(value.trim());
+                }
+            }
+        } catch (error) {
+            console.error("Eroare la conectare:", error);
+            alert("Eroare: Asigură-te că folosești Chrome și că Arduino este conectat!");
+        }
+    }
+
+    function updateInterface(val) {
+        const dist = parseInt(val);
+        if (isNaN(dist)) return;
+
+        // Actualizează cifra distanței
         document.getElementById('distanta').innerText = dist + " cm";
+
+        // Logică Alertă vizuală
         const alertaEl = document.getElementById('alerta');
-        
-        if(dist < 50) {
-            alertaEl.innerText = "OBSTACOL APROAPE";
+        if (dist < 50 && dist > 0) {
+            alertaEl.innerText = "CRITIC: OBSTACOL";
             alertaEl.className = "value status-alert";
         } else {
             alertaEl.innerText = "NOMINAL";
             alertaEl.className = "value status-ok";
         }
-        
-        document.getElementById('vocal').innerText = voice;
     }
-
-    // Simulare primire date pentru demo (se poate șterge după integrare)
-    setTimeout(() => updateData(45, "ALERT", "DA"), 2000);
 </script>
 
 </body>

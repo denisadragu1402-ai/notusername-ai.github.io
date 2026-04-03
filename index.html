@@ -2,82 +2,252 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <title>ECHO REAL-TIME COMMAND CENTER</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO RT - Command Center</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        :root { --bg: #030712; --cyan: #00f2ff; --red: #ff3131; --card: #0f172a; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 800px; }
-        .card { background: var(--card); border: 1px solid #1e293b; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .value { font-size: 3.5rem; font-weight: 800; display: block; margin: 10px 0; color: var(--cyan); }
-        .status-alert { color: var(--red); text-shadow: 0 0 15px var(--red); }
-        .log-container { grid-column: 1 / -1; text-align: left; background: #000; padding: 15px; border-radius: 10px; border-left: 4px solid var(--cyan); }
-        .log-entry { font-family: monospace; font-size: 0.9rem; padding: 5px; border-bottom: 1px solid #111; display: flex; justify-content: space-between; }
-        .badge { background: var(--cyan); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-right: 10px; }
+        :root {
+            --bg: #020617;
+            --card: #0f172a;
+            --cyan: #00f2ff;
+            --green: #22c55e;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --yellow: #facc15;
+            --text: #f8fafc;
+            --border: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--cyan);
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .value {
+            font-size: 3.5rem;
+            font-weight: 800;
+            display: block;
+        }
+
+        /* Status Classes */
+        .st-sigur { color: var(--green); }
+        .st-atentie { color: var(--orange); text-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
+        .st-pericol { color: var(--red); text-shadow: 0 0 20px rgba(239, 68, 68, 0.5); animation: pulse 1s infinite; }
+        .st-activat { color: var(--yellow); animation: blink 0.5s infinite; }
+
+        /* Jurnal Section */
+        .journal-card {
+            grid-column: 1 / -1;
+            text-align: left;
+        }
+
+        .journal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .journal-title {
+            color: var(--cyan);
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .log-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+        }
+
+        .log-item:first-child {
+            background: rgba(0, 242, 255, 0.05);
+            border-left: 3px solid var(--cyan);
+        }
+
+        .badge {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--cyan);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 10px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <h1 style="letter-spacing: 5px; color: var(--cyan)">ECHO <span style="color:white">REAL-TIME<3</span></h1>
+    <h1>ECHO RT <span style="color:white">Command Center</span></h1>
 
     <div class="dashboard">
         <div class="card">
-            <span style="color: #64748b">DISTANȚĂ LIVE</span>
-            <span id="dist-val" class="value">-- cm</span>
-        </div>
-        <div class="card">
-            <span style="color: #64748b">STATUS SISTEM</span>
-            <span id="status-val" class="value" style="font-size: 2rem">CONNECTING...</span>
+            <span class="label">Radar Distanță</span>
+            <span id="dist-val" class="value st-sigur">-- cm</span>
         </div>
 
-        <div class="card log-container">
-            <div style="margin-bottom: 15px; color: var(--cyan)">JURNAL EVENIMENTE (LIVE)</div>
-            <div id="journal"></div>
+        <div class="card">
+            <span class="label">Status Sistem</span>
+            <span id="status-val" class="value st-sigur" style="font-size: 2.2rem;">INIT...</span>
+        </div>
+
+        <div class="card journal-card">
+            <div class="journal-header">
+                <span class="journal-title">JURNAL ACTIVITATE BUTON</span>
+                <span style="font-size: 0.7rem; color: #64748b;">LIVE UPDATES</span>
+            </div>
+            <div id="journal" class="log-list">
+                <div class="log-item">Așteptare date din Firebase...</div>
+            </div>
         </div>
     </div>
 
     <script>
-        // CONFIGURARE FIREBASE (Inlocuieste cu datele tale!)
+        // CONFIGURARE FIREBASE
         const firebaseConfig = {
             databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app/" 
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // ASCULTĂM LIVE DATELE
+        // --- 1. MONITORIZARE STATUS ȘI DISTANȚĂ ---
         db.ref('sistem').on('value', (snapshot) => {
             const data = snapshot.val();
             if(!data) return;
 
-            // 1. Update Distanta
-            document.getElementById('dist-val').innerText = data.distanta + " cm";
+            const dist = data.distanta;
+            const btn = data.buton;
 
-            // 2. Update Status
-            const st = document.getElementById('status-val');
-            if(data.buton === 1) {
-                st.innerText = "ACTIVAT";
-                st.className = "value"; st.style.color = "#facc15";
-            } else if(data.distanta <= 10 && data.distanta > 0) {
-                st.innerText = "PERICOL";
-                st.className = "value status-alert";
-            } else {
-                st.innerText = "NOMINAL";
-                st.className = "value"; st.style.color = "#00f2ff";
+            // Update Distanta Text
+            const distDisplay = document.getElementById('dist-val');
+            distDisplay.innerText = dist + " cm";
+
+            // Update Status Logic
+            const statusDisplay = document.getElementById('status-val');
+            
+            if (btn === 1) {
+                statusDisplay.innerText = "ACTIVAT";
+                statusDisplay.className = "value st-activat";
+                distDisplay.className = "value st-activat";
+            } 
+            else if (dist <= 10 && dist > 0) {
+                statusDisplay.innerText = "PERICOL";
+                statusDisplay.className = "value st-pericol";
+                distDisplay.className = "value st-pericol";
+            } 
+            else if (dist >= 20 && dist <= 70) {
+                statusDisplay.innerText = "ATENȚIE";
+                statusDisplay.className = "value st-atentie";
+                distDisplay.className = "value st-atentie";
+            } 
+            else {
+                statusDisplay.innerText = "SIGUR";
+                statusDisplay.className = "value st-sigur";
+                distDisplay.className = "value st-sigur";
             }
         });
 
-        // JURNAL LIVE (Ultimele 10 apasari de buton)
-        db.ref('jurnal').limitToLast(10).on('child_added', (snapshot) => {
-            const entry = snapshot.val();
-            const logDiv = document.getElementById('journal');
-            const html = `
-                <div class="log-entry">
-                    <span><span class="badge">BUTON</span> ${entry.data}</span>
-                    <span style="color: var(--cyan)">${entry.ora}</span>
-                </div>`;
-            logDiv.innerHTML = html + logDiv.innerHTML;
+        // --- 2. JURNAL ULTIMELE 10 APĂSĂRI ---
+        // Folosim limitToLast(10) pentru a prelua doar ultimele 10 intrari
+        db.ref('jurnal').limitToLast(10).on('value', (snapshot) => {
+            const journalDiv = document.getElementById('journal');
+            journalDiv.innerHTML = ""; // Curatam lista veche
+
+            const data = snapshot.val();
+            if(!data) {
+                journalDiv.innerHTML = '<div class="log-item">Nicio activitate înregistrată.</div>';
+                return;
+            }
+
+            // Convertim obiectul Firebase in Array si il inversam (cele mai noi sus)
+            const entries = Object.keys(data).map(key => data[key]).reverse();
+
+            entries.forEach(entry => {
+                const logItem = document.createElement('div');
+                logItem.className = 'log-item';
+                
+                // Generam ora locala a browserului pentru jurnal
+                const timestamp = new Date().toLocaleTimeString();
+                
+                logItem.innerHTML = `
+                    <span><span class="badge">BUTON</span> ${entry.data || '03.04.2026'} - ACTIVAT</span>
+                    <span style="color: var(--cyan)">${timestamp}</span>
+                `;
+                journalDiv.appendChild(logItem);
+            });
         });
     </script>
 </body>

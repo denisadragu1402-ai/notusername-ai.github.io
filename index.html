@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <title>ECHO RT - Real Clock Dashboard</title>
+    <title>ECHO RT - Command Center</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -23,7 +23,7 @@
         .card { 
             background: var(--card); border: 1px solid var(--border); 
             padding: 40px 20px; border-radius: 24px; text-align: center; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
         }
         .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; display: block; }
         .value { font-size: 3.5rem; font-weight: 900; display: block; }
@@ -31,16 +31,14 @@
         .st-siguranta { color: var(--green); }
         .st-obstacol { color: var(--orange); }
         .st-pericol { color: var(--red); animation: pulse 1s infinite; }
-        .st-ceas { color: var(--cyan); font-family: 'Consolas', monospace; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+        .st-ora { color: var(--cyan); font-family: 'Courier New', monospace; text-shadow: 0 0 10px var(--cyan); }
 
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--cyan); letter-spacing: 6px; margin-bottom: 50px; text-transform: uppercase;">
-        ECHO <span style="color:white">Command Center</span>
-    </h1>
+    <h1 style="color: var(--cyan); letter-spacing: 6px; margin-bottom: 50px;">ECHO <span style="color:white">RT CENTER</span></h1>
 
     <div class="dashboard">
         <div class="card">
@@ -49,14 +47,14 @@
         </div>
 
         <div class="card">
-            <span class="label">Stare Perimetru</span>
+            <span class="label">Status Sistem</span>
             <span id="status-val" class="value" style="font-size: 2.2rem;">INIT...</span>
         </div>
 
         <div class="card">
-            <span class="label">Ultima Activare (Ora Reală)</span>
-            <span id="time-val" class="value st-ceas">--:--:--</span>
-            <span style="font-size: 0.7rem; color: #475569; margin-top: 15px; display: block;">REAL TIME CLOCK SYNC</span>
+            <span class="label">Ultima Apăsare Buton</span>
+            <span id="time-val" class="value st-ora">--:--:--</span>
+            <span style="font-size: 0.7rem; color: #475569; margin-top: 15px; display: block;">Sincronizat cu ceasul local</span>
         </div>
     </div>
 
@@ -76,7 +74,7 @@
             
             dv.innerText = d + " cm";
 
-            // REGULILE TALE: Pericol <= 10 | Obstacol 11-100 | Siguranta > 100
+            // REGULA TA: Pericol <= 10 | Obstacol 11-100 | Siguranta > 100
             if (d <= 10 && d > 0) {
                 sv.innerText = "PERICOL";
                 sv.className = "value st-pericol";
@@ -94,21 +92,21 @@
             }
         });
 
-        // 2. LOGICA ORA REALA (Declansata de buton)
-        // Ascultam orice schimbare la "buton_trigger"
-        db.ref('buton_trigger').on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                // GENERAM ORA REALA A CALCULATORULUI
+        // 2. LOGICA ORA (REPARATA)
+        // Ascultam orice schimbare la trigger_buton
+        db.ref('trigger_buton').on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                // In momentul in care Firebase ne spune ca butonul a fost apasat,
+                // luam ora REALA de pe ceasul laptopului tau.
                 const acum = new Date();
-                const ora = acum.getHours().toString().padStart(2, '0');
-                const min = acum.getMinutes().toString().padStart(2, '0');
-                const sec = acum.getSeconds().toString().padStart(2, '0');
+                const h = acum.getHours().toString().padStart(2, '0');
+                const m = acum.getMinutes().toString().padStart(2, '0');
+                const s = acum.getSeconds().toString().padStart(2, '0');
                 
-                const oraFinala = ora + ":" + min + ":" + sec;
+                const oraFinala = h + ":" + m + ":" + s;
                 
-                // Afisam ora pe site
                 document.getElementById('time-val').innerText = oraFinala;
-                console.log("Buton detectat la ora: " + oraFinala);
+                console.log("Buton detectat! Ora setata: " + oraFinala);
             }
         });
     </script>

@@ -2,153 +2,83 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO COMMAND CENTER</title>
+    <title>ECHO REAL-TIME COMMAND CENTER</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        :root {
-            --bg: #050a14;
-            --card: #0b1528;
-            --cyan: #00f2ff;
-            --red: #ff3c3c;
-            --text: #e6f1ff;
-            --dim: #707d91;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Courier New', monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            margin: 0;
-        }
-
-        h1 {
-            color: var(--cyan);
-            letter-spacing: 4px;
-            border-bottom: 2px solid var(--cyan);
-            padding-bottom: 10px;
-            margin-bottom: 30px;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 900px;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid rgba(0, 242, 255, 0.2);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .label { color: var(--dim); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; display: block; }
-        .value { font-size: 3rem; font-weight: bold; }
-
-        .status-ok { color: var(--cyan); }
-        .status-alert { color: var(--red); animation: blink 1s infinite; }
-        .status-btn { color: #f7ff00; text-shadow: 0 0 10px rgba(247, 255, 0, 0.5); }
-
-        /* JURNAL */
-        .journal-container { grid-column: 1 / -1; text-align: left; }
-        .journal-list { list-style: none; padding: 0; margin-top: 15px; max-height: 200px; overflow-y: auto; }
-        .entry {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-size: 0.85rem;
-        }
-        .tag { background: #1a2f4d; color: var(--cyan); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 10px; }
-
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        .footer { margin-top: 40px; font-size: 0.7rem; color: var(--dim); }
+        :root { --bg: #030712; --cyan: #00f2ff; --red: #ff3131; --card: #0f172a; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 800px; }
+        .card { background: var(--card); border: 1px solid #1e293b; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .value { font-size: 3.5rem; font-weight: 800; display: block; margin: 10px 0; color: var(--cyan); }
+        .status-alert { color: var(--red); text-shadow: 0 0 15px var(--red); }
+        .log-container { grid-column: 1 / -1; text-align: left; background: #000; padding: 15px; border-radius: 10px; border-left: 4px solid var(--cyan); }
+        .log-entry { font-family: monospace; font-size: 0.9rem; padding: 5px; border-bottom: 1px solid #111; display: flex; justify-content: space-between; }
+        .badge { background: var(--cyan); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-right: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>ECHO COMMAND CENTER</h1>
+    <h1 style="letter-spacing: 5px; color: var(--cyan)">ECHO <span style="color:white">RT</span></h1>
 
     <div class="dashboard">
         <div class="card">
-            <span class="label">Radar Distanță</span>
-            <span id="distanta" class="value">-- cm</span>
+            <span style="color: #64748b">DISTANȚĂ LIVE</span>
+            <span id="dist-val" class="value">-- cm</span>
         </div>
-
         <div class="card">
-            <span class="label">Status Perimetru</span>
-            <span id="status" class="value status-ok">SCANNING</span>
+            <span style="color: #64748b">STATUS SISTEM</span>
+            <span id="status-val" class="value" style="font-size: 2rem">CONNECTING...</span>
         </div>
 
-        <div class="card journal-container">
-            <span class="label">Jurnal Activitate Buton (Ultimele 10)</span>
-            <ul id="journal-list" class="journal-list">
-                <li class="entry">Sincronizare cu serverul...</li>
-            </ul>
+        <div class="card log-container">
+            <div style="margin-bottom: 15px; color: var(--cyan)">JURNAL EVENIMENTE (LIVE)</div>
+            <div id="journal"></div>
         </div>
-    </div>
-
-    <div class="footer">
-        SERVER_REFRESH: 16s | SYNC_TIME: <span id="sync-time">--:--:--</span>
     </div>
 
     <script>
-        const channelID = '3325389';
-        const readKey = '446NMXGKO5WC319U';
+        // CONFIGURARE FIREBASE (Inlocuieste cu datele tale!)
+        const firebaseConfig = {
+            databaseURL: "URL_UL_TAU_DE_LA_FIREBASE" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        async function updateData() {
-            const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?results=10&api_key=${readKey}&nocache=${Date.now()}`;
-            
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.feeds && data.feeds.length > 0) {
-                    const latest = data.feeds[data.feeds.length - 1];
-                    const dist = parseInt(latest.field1);
-                    const btn = parseInt(latest.field2);
+        // ASCULTĂM LIVE DATELE
+        db.ref('sistem').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(!data) return;
 
-                    // 1. Update Distanta (Filtram vizual cifra 0 pe site daca e dubioasa)
-                    document.getElementById('distanta').innerText = (dist > 0) ? dist + " cm" : "SCANNING...";
+            // 1. Update Distanta
+            document.getElementById('dist-val').innerText = data.distanta + " cm";
 
-                    // 2. Update Status (Ierarhie: Buton > Distanta > Nominal)
-                    const statusEl = document.getElementById('status');
-                    if (btn === 1) {
-                        statusEl.innerText = "ACTIVAT";
-                        statusEl.className = "value status-btn";
-                    } else if (dist <= 10 && dist > 0) {
-                        statusEl.innerText = "PERICOL";
-                        statusEl.className = "value status-alert";
-                    } else {
-                        statusEl.innerText = "NOMINAL";
-                        statusEl.className = "value status-ok";
-                    }
+            // 2. Update Status
+            const st = document.getElementById('status-val');
+            if(data.buton === 1) {
+                st.innerText = "ACTIVAT";
+                st.className = "value"; st.style.color = "#facc15";
+            } else if(data.distanta <= 10 && data.distanta > 0) {
+                st.innerText = "PERICOL";
+                st.className = "value status-alert";
+            } else {
+                st.innerText = "NOMINAL";
+                st.className = "value"; st.style.color = "#00f2ff";
+            }
+        });
 
-                    // 3. Update Jurnal
-                    const listEl = document.getElementById('journal-list');
-                    listEl.innerHTML = "";
-                    [...data.feeds].reverse().forEach(f => {
-                        if (f.field2 == "1") {
-                            const time = new Date(f.created_at).toLocaleTimeString();
-                            const date = new Date(f.created_at).toLocaleDateString();
-                            listEl.innerHTML += `<li class="entry"><span><span class="tag">BUTON</span>${date}</span><span>${time}</span></li>`;
-                        }
-                    });
-
-                    document.getElementById('sync-time').innerText = new Date(latest.created_at).toLocaleTimeString();
-                }
-            } catch (e) { console.log("Eroare date:", e); }
-        }
-
-        setInterval(updateData, 16000);
-        updateData();
+        // JURNAL LIVE (Ultimele 10 apasari de buton)
+        db.ref('jurnal').limitToLast(10).on('child_added', (snapshot) => {
+            const entry = snapshot.val();
+            const logDiv = document.getElementById('journal');
+            const html = `
+                <div class="log-entry">
+                    <span><span class="badge">BUTON</span> ${entry.data}</span>
+                    <span style="color: var(--cyan)">${entry.ora}</span>
+                </div>`;
+            logDiv.innerHTML = html + logDiv.innerHTML;
+        });
     </script>
 </body>
 </html>

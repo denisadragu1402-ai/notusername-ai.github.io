@@ -2,101 +2,91 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <title>ECHO RT - Alert Mode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        :root { --bg: #020617; --card: #0f172a; --cyan: #00f2ff; --green: #22c55e; --red: #ef4444; --text: #f8fafc; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 800px; margin-top: 20px; }
-        .card { background: var(--card); border: 1px solid #1e293b; padding: 30px; border-radius: 20px; text-align: center; transition: 0.3s; }
-        .full { grid-column: 1 / span 2; }
-        
-        /* Stiluri Buton */
-        #btn-status { font-size: 2rem; font-weight: 900; letter-spacing: 2px; }
-        .btn-inactiv { color: #334155; }
-        .btn-activ { color: var(--red); text-shadow: 0 0 20px rgba(239, 68, 68, 0.6); animation: alert-pulse 0.5s infinite; }
-        
-        /* Stiluri Distanta */
-        .dist-val { font-size: 3.5rem; font-weight: bold; display: block; margin: 10px 0; }
-        .st-sigur { color: var(--green); }
-        .st-pericol { color: var(--red); animation: alert-pulse 1s infinite; }
-
-        @keyframes alert-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .label { color: #64748b; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: white; text-align: center; }
+        .container { margin-top: 50px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; display: inline-block; min-width: 250px; margin: 10px; border: 1px solid #333; }
+        .live-clock { color: #00ff88; font-size: 1.5em; font-weight: bold; }
+        .last-press { color: #ff3e3e; font-size: 1.2em; }
+        .distanta { font-size: 3em; color: #00d4ff; }
+        .status { padding: 10px; border-radius: 5px; margin-top: 10px; display: inline-block; }
+        .active { background: #ff3e3e; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--cyan); letter-spacing: 10px; margin-bottom: 5px;">ECHO <span style="color:white">RT</span></h1>
-    <p style="color: #64748b; margin-top: 0;">Sistem de Monitorizare Radar și Alertă</p>
+    <div class="container">
+        <h1>PROIECT ECHO</h1>
 
-    <div class="dashboard">
-        <div class="card full">
-            <span class="label">Status Senzor Distanță</span>
-            <div id="radar-ui">
-                <span id="dist-display" class="dist-val">-- cm</span>
-                <span id="status-label" style="font-weight: bold;">STANDBY</span>
-            </div>
+        <div class="card">
+            <p>ORA LIVE</p>
+            <div id="clock" class="live-clock">00:00:00</div>
         </div>
 
-        <div class="card full" id="btn-card">
-            <span class="label">Stare Buton Panică</span>
-            <div id="btn-status" class="btn-inactiv" style="margin-top: 15px;">INACTIV</div>
+        <div class="card">
+            <p>DISTANȚĂ SENZOR</p>
+            <div id="dist" class="distanta">0</div>
+            <p>cm</p>
+        </div>
+
+        <div class="card">
+            <p>ULTIMA ACTIVARE BUTON</p>
+            <div id="lastTime" class="last-press">--:--:--</div>
+            <div id="btnStatus" class="status">AȘTEPTARE...</div>
         </div>
     </div>
 
     <script>
-        // --- DATE DE INLOCUIT (Firebase Config) ---
+        // CONFIGURARE FIREBASE (Pune datele tale aici!)
         const firebaseConfig = {
-            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app/"
+            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app"
         };
-        // -------------------------------------------
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // 1. FUNCȚIE ORA LIVE
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ro-RO');
+            document.getElementById('clock').innerText = timeString;
+        }
+        setInterval(updateClock, 1000); // Update la fiecare secundă
+
+        // 2. ASCULTARE DATE DIN FIREBASE
+        
+        // Ascultăm distanța
         db.ref('sistem').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (!data) return;
-
-            // 1. Logica Buton (Activ/Inactiv)
-            const btnEl = document.getElementById('btn-status');
-            const btnCard = document.getElementById('btn-card');
-            
-            if (data.buton_stare === 1) {
-                btnEl.innerText = "ACTIV - ALERTĂ!";
-                btnEl.className = "btn-activ";
-                btnCard.style.borderColor = "var(--red)";
-            } else {
-                btnEl.innerText = "INACTIV";
-                btnEl.className = "btn-inactiv";
-                btnCard.style.borderColor = "#1e293b";
+            if(data) {
+                document.getElementById('dist').innerText = data.distanta;
             }
+        });
 
-            // 2. Logica Radar (Watchdog + Distanta)
-            const acum = Date.now();
-            const diff = (acum - data.radar_timestamp) / 1000;
-            const distDisplay = document.getElementById('dist-display');
-            const statusLabel = document.getElementById('status-label');
-
-            if (diff < 40) { // Radarul este online
-                const d = data.distanta;
-                distDisplay.innerText = d + " cm";
-                if (d <= 15) {
-                    statusLabel.innerText = "PERICOL";
-                    statusLabel.className = "st-pericol";
-                    distDisplay.className = "dist-val st-pericol";
-                } else {
-                    statusLabel.innerText = "SIGURANȚĂ";
-                    statusLabel.className = "st-sigur";
-                    distDisplay.className = "dist-val st-sigur";
-                }
-            } else { // Radarul este offline
-                distDisplay.innerText = "-- cm";
-                statusLabel.innerText = "SISTEM DECONECTAT";
-                statusLabel.className = "";
-                distDisplay.className = "dist-val";
+        // Ascultăm trigger-ul de buton
+        db.ref('trigger_buton').on('value', (snapshot) => {
+            const val = snapshot.val();
+            if(val) {
+                // Când valoarea se schimbă, înseamnă că butonul a fost apăsat
+                const now = new Date();
+                const oraApasare = now.toLocaleTimeString('ro-RO');
+                
+                document.getElementById('lastTime').innerText = oraApasare;
+                
+                // Efect vizual de alertă
+                const statusDiv = document.getElementById('btnStatus');
+                statusDiv.innerText = "BUTON APĂSAT!";
+                statusDiv.className = "status active";
+                
+                setTimeout(() => {
+                    statusDiv.className = "status";
+                    statusDiv.innerText = "OK";
+                }, 3000); // Revine la normal după 3 secunde
             }
         });
     </script>

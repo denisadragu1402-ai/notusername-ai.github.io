@@ -28,7 +28,7 @@
             background: var(--card-bg); padding: 40px; border-radius: 25px;
             border: 2px solid var(--neon-purple); text-align: center; width: 350px;
             box-shadow: 0 0 25px rgba(176, 80, 255, 0.25);
-            transition: all 0.4s ease;
+            transition: all 0.3s ease;
         }
 
         .dist-label { font-size: 0.8em; color: var(--text-gray); letter-spacing: 2px; text-transform: uppercase;}
@@ -40,7 +40,7 @@
             padding: 15px 30px; border-radius: 50px; cursor: pointer; font-weight: bold;
             letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s; margin-bottom: 30px; width: 100%;
         }
-        .btn-ham:hover { background: var(--neon-pink); color: white; box-shadow: 0 0 20px var(--neon-pink); }
+        .btn-ham:hover { background: var(--neon-pink); color: white; box-shadow: 0 0 20px var(--neon-pink); transform: scale(1.05);}
 
         .btn-status-container { border-top: 1px solid #3d2354; padding-top: 20px; }
         #btn-status { margin-top: 10px; font-size: 1.2em; font-weight: bold; }
@@ -48,9 +48,9 @@
         .footer-tech { position: absolute; bottom: 20px; font-size: 0.75em; color: var(--text-gray); display: flex; gap: 20px; text-transform: uppercase; letter-spacing: 1px; }
 
         .active-btn { color: var(--neon-pink) !important; text-shadow: 0 0 10px var(--neon-pink); }
-        .alert-pulse { animation: pulseWarning 0.6s infinite alternate; }
+        .alert-pulse { animation: pulseWarning 0.5s infinite alternate; }
         
-        @keyframes pulseWarning { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.02); } }
+        @keyframes pulseWarning { from { opacity: 1; transform: scale(1); } to { opacity: 0.6; transform: scale(1.03); } }
     </style>
 </head>
 <body>
@@ -76,10 +76,7 @@
     </div>
 
     <script>
-        const firebaseConfig = { 
-            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app" 
-        };
-        
+        const firebaseConfig = { databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
@@ -94,7 +91,7 @@
             const dist = snapshot.val();
             
             if (dist === null || dist === 999) {
-                elDist.innerText = "-- cm"; // Ascundem valoarea urata 999
+                elDist.innerText = "-- cm"; 
                 elMsg.innerText = "ZONĂ LIBERĂ (FĂRĂ OBSTACOL)";
                 elDist.style.color = "var(--neon-purple)";
                 elMsg.style.color = "var(--neon-purple)";
@@ -126,12 +123,11 @@
             }
         });
 
-        // CITIRE BUTON FIZIC DE PE ARDUINO
+        // CITIRE BUTON FIZIC 
         let lastBtnVal = null;
         db.ref('trigger_buton').on('value', (snapshot) => {
             const val = snapshot.val();
             const elStatus = document.getElementById('btn-status');
-            
             if (lastBtnVal !== null && val !== lastBtnVal) {
                 elStatus.innerText = "APĂSAT!";
                 elStatus.className = "active-btn";
@@ -140,7 +136,7 @@
             lastBtnVal = val;
         });
 
-        // TRIMITERE COMANDĂ SPRE ARDUINO
+        // TRIMITERE COMANDĂ
         function triggerHam() {
             const btn = document.getElementById('ham-btn');
             btn.innerText = "SE TRIMITE...";

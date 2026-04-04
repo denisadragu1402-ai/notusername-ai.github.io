@@ -3,129 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO System Dashboard</title>
-    
+    <title>ECHO Dashboard v5.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <style>
-        :root {
-            --neon: #00f2ff;
-            --bg: #0a0a0c;
-            --card: #16161d;
+        :root { --bg: #0d0612; --purp: #b050ff; --pink: #ff00ff; --txt: #d0a0ff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .dashboard { background: #1a0f26; padding: 30px; border-radius: 25px; border: 2px solid var(--purp); text-align: center; width: 340px; box-shadow: 0 0 20px rgba(176,80,255,0.3); }
+        .value { font-size: 4em; font-weight: bold; color: var(--purp); margin: 10px 0; }
+        
+        /* BUTONUL RESTAURAT */
+        .btn-ham {
+            background: transparent; border: 2px solid var(--pink); color: var(--pink);
+            padding: 15px; border-radius: 50px; cursor: pointer; font-weight: bold;
+            text-transform: uppercase; width: 100%; margin: 20px 0; transition: 0.3s;
         }
-
-        body {
-            background-color: var(--bg);
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .container {
-            background: var(--card);
-            padding: 2rem;
-            border-radius: 20px;
-            border: 1px solid #333;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            text-align: center;
-            width: 350px;
-        }
-
-        h1 { font-size: 1.5rem; letter-spacing: 2px; color: #888; margin-bottom: 2rem; }
-
-        .data-box { margin-bottom: 2rem; }
-
-        .label { font-size: 0.8rem; text-transform: uppercase; color: #555; margin-bottom: 0.5srem; }
-
-        .value {
-            font-size: 3.5rem;
-            font-weight: bold;
-            color: var(--neon);
-            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-        }
-
-        .unit { font-size: 1.2rem; margin-left: 5px; color: #444; }
-
-        .status-badge {
-            display: inline-block;
-            padding: 8px 20px;
-            border-radius: 50px;
-            background: #222;
-            font-size: 0.8rem;
-            border: 1px solid #444;
-            transition: all 0.3s;
-        }
-
-        .active {
-            background: #00ff8822;
-            border-color: #00ff88;
-            color: #00ff88;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-        }
+        .btn-ham:hover { background: var(--pink); color: white; box-shadow: 0 0 15px var(--pink); }
+        
+        .status-box { border-top: 1px solid #331a4d; padding-top: 15px; font-weight: bold; }
+        .active { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
     </style>
 </head>
 <body>
+    <h1>ECHO SYSTEM</h1>
+    <div class="dashboard">
+        <div style="font-size: 0.8em; color: #8e6b9c;">DISTANȚĂ</div>
+        <div id="dist-val" class="value">-- cm</div>
+        <div id="dist-msg" style="margin-bottom: 10px;">CONECTARE...</div>
 
-    <div class="container">
-        <h1>ECHO LIVE SYSTEM</h1>
+        <button class="btn-ham" onclick="triggerHam()">Comandă: Ham Ham (LED)</button>
 
-        <div class="data-box">
-            <div class="label">Distanță Senzor</div>
-            <div class="value" id="dist-val">--<span class="unit">cm</span></div>
-        </div>
-
-        <div class="data-box">
-            <div class="label">Status Buton Fizic</div>
-            <div id="btn-status" class="status-badge">INACTIV</div>
-        </div>
-
-        <div style="font-size: 0.6rem; color: #333; margin-top: 1rem;">
-            ID Proiect: echo-bd4aa
+        <div class="status-box">
+            <div style="font-size: 0.7em; color: #8e6b9c; margin-bottom: 5px;">BUTON ROBOT</div>
+            <div id="btn-status">INACTIV</div>
         </div>
     </div>
 
     <script>
-        // Configurația Firebase (Preluată din codul tău Arduino)
-        const firebaseConfig = {
-            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app"
-        };
-
-        // Inițializare Firebase
+        const firebaseConfig = { databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app" };
         firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        const db = firebase.database();
 
-        // 1. Ascultă Distanța (din sistem/distanta)
-        database.ref('sistem').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data && data.distanta !== undefined) {
-                document.getElementById('dist-val').innerHTML = data.distanta + '<span class="unit">cm</span>';
-                
-                // Schimbă culoarea dacă e prea aproape (vizual pe site)
-                if(data.distanta <= 20) {
-                    document.getElementById('dist-val').style.color = "#ff4444";
-                } else {
-                    document.getElementById('dist-val').style.color = "#00f2ff";
-                }
+        // Citire Distanta
+        db.ref('sistem/distanta').on('value', (s) => {
+            const d = s.val();
+            const el = document.getElementById('dist-val');
+            const msg = document.getElementById('dist-msg');
+            if (d === null || d === 999) {
+                el.innerText = "-- cm"; msg.innerText = "ZONĂ LIBERĂ"; el.style.color = "var(--purp)";
+            } else {
+                el.innerText = d + " cm";
+                if(d <= 15) { msg.innerText = "PERICOL!"; el.style.color = "var(--pink)"; }
+                else { msg.innerText = "OBSTACOL"; el.style.color = "var(--purp)"; }
             }
         });
 
-        // 2. Ascultă Butonul
-        // Verificăm dacă valoarea trigger_buton se schimbă
-        database.ref('trigger_buton').on('value', (snapshot) => {
-            const statusBadge = document.getElementById('btn-status');
-            statusBadge.innerText = "APĂSAT!";
-            statusBadge.classList.add('active');
+        // Comanda LED (Ham Ham)
+        function triggerHam() {
+            db.ref('comanda_ham').set(1).then(() => alert("Comandă trimisă!"));
+        }
 
-            // Revenire la starea inactivă după 1.5 secunde (efect vizual)
-            setTimeout(() => {
-                statusBadge.innerText = "INACTIV";
-                statusBadge.classList.remove('active');
-            }, 1500);
+        // Status Buton Robot
+        let lastB = null;
+        db.ref('trigger_buton').on('value', (s) => {
+            const v = s.val();
+            const el = document.getElementById('btn-status');
+            if (lastB !== null && v != lastB) {
+                el.innerText = "APĂSAT!"; el.className = "active";
+                setTimeout(() => { el.innerText = "INACTIV"; el.className = ""; }, 5000);
+            }
+            lastB = v;
         });
     </script>
 </body>

@@ -2,146 +2,101 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <title>ECHO RT - Command Center</title>
+    <title>ECHO RT - Alert Mode</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root {
-            --bg: #020617; --card: #0f172a; --cyan: #00f2ff;
-            --green: #22c55e; --orange: #f59e0b; --red: #ef4444;
-            --text: #f8fafc; --subtext: #64748b;
-        }
-
-        body { 
-            background-color: var(--bg); color: var(--text); 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            display: flex; flex-direction: column; align-items: center; 
-            min-height: 100vh; margin: 0; padding: 40px 20px;
-        }
-
-        .header { text-align: center; margin-bottom: 40px; }
-        .dashboard { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; 
-            width: 100%; max-width: 800px; 
-        }
-
-        .card { 
-            background: var(--card); border: 1px solid #1e293b; 
-            padding: 30px; border-radius: 24px; text-align: center;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-
-        .full-width { grid-column: 1 / span 2; }
-        .label { color: var(--subtext); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 2px; margin-bottom: 15px; display: block; }
-        .value { font-size: 4rem; font-weight: 800; display: block; line-height: 1; margin: 10px 0; }
+        :root { --bg: #020617; --card: #0f172a; --cyan: #00f2ff; --green: #22c55e; --red: #ef4444; --text: #f8fafc; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 800px; margin-top: 20px; }
+        .card { background: var(--card); border: 1px solid #1e293b; padding: 30px; border-radius: 20px; text-align: center; transition: 0.3s; }
+        .full { grid-column: 1 / span 2; }
         
-        /* Culori Status */
-        .st-siguranta { color: var(--green); }
-        .st-obstacol { color: var(--orange); }
-        .st-pericol { color: var(--red); animation: pulse 1s infinite; }
+        /* Stiluri Buton */
+        #btn-status { font-size: 2rem; font-weight: 900; letter-spacing: 2px; }
+        .btn-inactiv { color: #334155; }
+        .btn-activ { color: var(--red); text-shadow: 0 0 20px rgba(239, 68, 68, 0.6); animation: alert-pulse 0.5s infinite; }
+        
+        /* Stiluri Distanta */
+        .dist-val { font-size: 3.5rem; font-weight: bold; display: block; margin: 10px 0; }
+        .st-sigur { color: var(--green); }
+        .st-pericol { color: var(--red); animation: alert-pulse 1s infinite; }
 
-        /* Ceas Live Dreapta Jos */
-        .live-clock-fixed {
-            position: fixed; bottom: 20px; right: 25px;
-            font-family: 'Courier New', monospace;
-            color: var(--subtext); font-size: 1.1rem;
-            background: rgba(15, 23, 42, 0.8);
-            padding: 5px 15px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.05);
-            pointer-events: none;
-        }
-
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes alert-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .label { color: #64748b; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1 style="color: var(--cyan); letter-spacing: 10px; margin: 0; font-size: 2.5rem;">ECHO <span style="color:white">RT</span></h1>
-        <p style="color: var(--subtext); font-size: 0.9rem;">MONITORIZARE RADAR FIREBASE</p>
-    </div>
+    <h1 style="color: var(--cyan); letter-spacing: 10px; margin-bottom: 5px;">ECHO <span style="color:white">RT</span></h1>
+    <p style="color: #64748b; margin-top: 0;">Sistem de Monitorizare Radar și Alertă</p>
 
     <div class="dashboard">
-        <div class="card full-width">
-            <span class="label">Ultimul eveniment detectat (Server Time)</span>
-            <span id="display-ora" style="font-family: monospace; font-size: 2rem; color: var(--cyan);">--:--:--</span>
+        <div class="card full">
+            <span class="label">Status Senzor Distanță</span>
+            <div id="radar-ui">
+                <span id="dist-display" class="dist-val">-- cm</span>
+                <span id="status-label" style="font-weight: bold;">STANDBY</span>
+            </div>
         </div>
 
-        <div class="card">
-            <span class="label">Distanță</span>
-            <span id="display-dist" class="value">-- cm</span>
-        </div>
-
-        <div class="card">
-            <span class="label">Analiză Status</span>
-            <span id="display-status" class="value" style="font-size: 1.8rem;">---</span>
+        <div class="card full" id="btn-card">
+            <span class="label">Stare Buton Panică</span>
+            <div id="btn-status" class="btn-inactiv" style="margin-top: 15px;">INACTIV</div>
         </div>
     </div>
 
-    <div id="live-clock" class="live-clock-fixed">00:00:00</div>
-
     <script>
-        // 1. CONFIGURARE FIREBASE
-        const firebaseConfig = { databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app/" };
+        // --- DATE DE INLOCUIT (Firebase Config) ---
+        const firebaseConfig = {
+            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+        // -------------------------------------------
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 2. CEAS LIVE (DREAPTA JOS)
-        function updateLiveClock() {
-            const now = new Date();
-            document.getElementById('live-clock').innerText = now.toLocaleTimeString('ro-RO');
-        }
-        setInterval(updateLiveClock, 1000);
-        updateLiveClock();
+        db.ref('sistem').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
 
-        // 3. LOGICA DATE RADAR (Statusul cerut)
-        db.ref('sistem/distanta').on('value', (snapshot) => {
-            const d = snapshot.val();
-            if (d === null) return;
-
-            const distEl = document.getElementById('display-dist');
-            const statusEl = document.getElementById('display-status');
-
-            distEl.innerText = d + " cm";
-
-            // Noua Logica de Status:
-            // Pericol < 10 | Obstacol < 50 | Siguranta > 50
-            if (d > 0 && d < 10) {
-                statusEl.innerText = "PERICOL";
-                statusEl.className = "value st-pericol";
-                distEl.className = "value st-pericol";
-            } 
-            else if (d >= 10 && d < 50) {
-                statusEl.innerText = "OBSTACOL";
-                statusEl.className = "value st-obstacol";
-                distEl.className = "value st-obstacol";
-            } 
-            else if (d >= 50) {
-                statusEl.innerText = "SIGURANȚĂ";
-                statusEl.className = "value st-siguranta";
-                distEl.className = "value st-siguranta";
-            }
-            else {
-                statusEl.innerText = "STANDBY";
-                statusEl.className = "value";
-                distEl.className = "value";
-            }
-        });
-
-        // 4. ORA FIXĂ DIN BAZA DE DATE (Pentru persistenta la refresh)
-        db.ref('ultima_ora').on('value', (snapshot) => {
-            const t = snapshot.val();
-            if(!t) return;
-
-            const displayOra = document.getElementById('display-ora');
+            // 1. Logica Buton (Activ/Inactiv)
+            const btnEl = document.getElementById('btn-status');
+            const btnCard = document.getElementById('btn-card');
             
-            // Daca este timestamp numeric (de la .sv: timestamp)
-            if (typeof t === "number") {
-                displayOra.innerText = new Date(t).toLocaleTimeString('ro-RO');
-            } 
-            // Daca este string (ex: "03:31")
-            else {
-                displayOra.innerText = t;
+            if (data.buton_stare === 1) {
+                btnEl.innerText = "ACTIV - ALERTĂ!";
+                btnEl.className = "btn-activ";
+                btnCard.style.borderColor = "var(--red)";
+            } else {
+                btnEl.innerText = "INACTIV";
+                btnEl.className = "btn-inactiv";
+                btnCard.style.borderColor = "#1e293b";
+            }
+
+            // 2. Logica Radar (Watchdog + Distanta)
+            const acum = Date.now();
+            const diff = (acum - data.radar_timestamp) / 1000;
+            const distDisplay = document.getElementById('dist-display');
+            const statusLabel = document.getElementById('status-label');
+
+            if (diff < 40) { // Radarul este online
+                const d = data.distanta;
+                distDisplay.innerText = d + " cm";
+                if (d <= 15) {
+                    statusLabel.innerText = "PERICOL";
+                    statusLabel.className = "st-pericol";
+                    distDisplay.className = "dist-val st-pericol";
+                } else {
+                    statusLabel.innerText = "SIGURANȚĂ";
+                    statusLabel.className = "st-sigur";
+                    distDisplay.className = "dist-val st-sigur";
+                }
+            } else { // Radarul este offline
+                distDisplay.innerText = "-- cm";
+                statusLabel.innerText = "SISTEM DECONECTAT";
+                statusLabel.className = "";
+                distDisplay.className = "dist-val";
             }
         });
     </script>

@@ -3,77 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO Dashboard v5.0</title>
+    <title>ECHO Dashboard Live</title>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        :root { --bg: #0d0612; --purp: #b050ff; --pink: #ff00ff; --txt: #d0a0ff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--txt); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .dashboard { background: #1a0f26; padding: 30px; border-radius: 25px; border: 2px solid var(--purp); text-align: center; width: 340px; box-shadow: 0 0 20px rgba(176,80,255,0.3); }
-        .value { font-size: 4em; font-weight: bold; color: var(--purp); margin: 10px 0; }
-        
-        /* BUTONUL RESTAURAT */
-        .btn-ham {
-            background: transparent; border: 2px solid var(--pink); color: var(--pink);
-            padding: 15px; border-radius: 50px; cursor: pointer; font-weight: bold;
-            text-transform: uppercase; width: 100%; margin: 20px 0; transition: 0.3s;
+        /* --- TEMA TA NEON --- */
+        :root {
+            --bg-dark: #0d0612; 
+            --card-bg: #1a0f26;
+            --neon-purple: #b050ff; 
+            --neon-pink: #ff00ff; 
+            --neon-orange: #ff9d00; 
+            --text-gray: #8e6b9c; 
+            --text-light: #d0a0ff;
         }
-        .btn-ham:hover { background: var(--pink); color: white; box-shadow: 0 0 15px var(--pink); }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: var(--text-light); 
+            margin: 0; 
+            display: flex;
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: var(--text-light);
+            letter-spacing: 5px;
+            text-shadow: 0 0 15px var(--neon-purple);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        /* --- DASHBOARD CARD --- */
+        .dashboard {
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 30px;
+            border: 2px solid var(--neon-purple); 
+            text-align: center; 
+            width: 350px;
+            box-shadow: 0 0 30px rgba(176, 80, 255, 0.3);
+            transition: all 0.4s ease;
+        }
+
+        .dist-label { 
+            font-size: 0.8em; 
+            color: var(--text-gray); 
+            letter-spacing: 2px; 
+            text-transform: uppercase;
+        }
         
-        .status-box { border-top: 1px solid #331a4d; padding-top: 15px; font-weight: bold; }
-        .active { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+        .value { 
+            font-size: 4.5em; 
+            font-weight: 900; 
+            color: var(--neon-purple); 
+            margin: 10px 0; 
+            text-shadow: 0 0 20px rgba(176, 80, 255, 0.5);
+        }
+        
+        .msg-distanta { 
+            font-size: 1em; 
+            font-weight: bold; 
+            margin-bottom: 30px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+
+        /* --- BUTONUL HAM HAM ROZ --- */
+        .btn-ham {
+            background: transparent; 
+            border: 2px solid var(--neon-pink); 
+            color: var(--neon-pink);
+            padding: 18px; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase; 
+            transition: all 0.3s; 
+            width: 100%;
+            margin-bottom: 25px;
+            outline: none;
+        }
+        .btn-ham:hover { 
+            background: var(--neon-pink); 
+            color: white; 
+            box-shadow: 0 0 25px var(--neon-pink); 
+            transform: scale(1.03);
+        }
+
+        /* --- STATUS BUTON ROBOT --- */
+        .status-container {
+            border-top: 1px solid #3d2354; 
+            padding-top: 20px;
+        }
+        #btn-status {
+            margin-top: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* --- ANIMAȚII --- */
+        .active-alert { 
+            color: var(--neon-pink) !important; 
+            text-shadow: 0 0 20px var(--neon-pink);
+            animation: pulse 0.6s infinite alternate; 
+        }
+        
+        @keyframes pulse { 
+            from { opacity: 1; transform: scale(1); } 
+            to { opacity: 0.7; transform: scale(1.05); } 
+        }
+
+        .footer {
+            position: absolute; bottom: 20px; font-size: 0.7em; color: var(--text-gray);
+            letter-spacing: 1px; text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
+
     <h1>ECHO SYSTEM</h1>
-    <div class="dashboard">
-        <div style="font-size: 0.8em; color: #8e6b9c;">DISTANȚĂ</div>
+    
+    <div class="dashboard" id="main-card">
+        <div class="dist-label">Distanță Senzor</div>
         <div id="dist-val" class="value">-- cm</div>
-        <div id="dist-msg" style="margin-bottom: 10px;">CONECTARE...</div>
+        <div id="dist-msg" class="msg-distanta">Sistem activ</div>
+        
+        <button class="btn-ham" onclick="triggerHam()" id="ham-btn">Comandă: Ham Ham</button>
 
-        <button class="btn-ham" onclick="triggerHam()">Comandă: Ham Ham (LED)</button>
-
-        <div class="status-box">
-            <div style="font-size: 0.7em; color: #8e6b9c; margin-bottom: 5px;">BUTON ROBOT</div>
+        <div class="status-container">
+            <div class="dist-label">Status Buton Robot</div>
             <div id="btn-status">INACTIV</div>
         </div>
     </div>
 
+    <div class="footer">
+        Live Stream Data | v5.0 Cyber-Link
+    </div>
+
     <script>
-        const firebaseConfig = { databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app" };
+        const firebaseConfig = { 
+            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app" 
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Citire Distanta
-        db.ref('sistem/distanta').on('value', (s) => {
-            const d = s.val();
-            const el = document.getElementById('dist-val');
-            const msg = document.getElementById('dist-msg');
-            if (d === null || d === 999) {
-                el.innerText = "-- cm"; msg.innerText = "ZONĂ LIBERĂ"; el.style.color = "var(--purp)";
+        // 1. ASCULTARE DISTANȚĂ
+        db.ref('sistem/distanta').on('value', (snapshot) => { 
+            const dist = snapshot.val();
+            const elDist = document.getElementById('dist-val');
+            const elMsg = document.getElementById('dist-msg');
+            const card = document.getElementById('main-card');
+
+            if (dist === null || dist >= 400 || dist === 999) {
+                elDist.innerText = "-- cm";
+                elMsg.innerText = "ZONĂ LIBERĂ";
+                elDist.style.color = "var(--neon-purple)";
+                card.style.borderColor = "var(--neon-purple)";
+                card.style.boxShadow = "0 0 30px rgba(176, 80, 255, 0.3)";
             } else {
-                el.innerText = d + " cm";
-                if(d <= 15) { msg.innerText = "PERICOL!"; el.style.color = "var(--pink)"; }
-                else { msg.innerText = "OBSTACOL"; el.style.color = "var(--purp)"; }
+                elDist.innerText = dist + " cm";
+                if (dist <= 15) {
+                    elMsg.innerText = "ALERTA: PERICOL!";
+                    elDist.style.color = "var(--neon-pink)";
+                    card.style.borderColor = "var(--neon-pink)";
+                    card.style.boxShadow = "0 0 40px rgba(255, 0, 255, 0.5)";
+                } else {
+                    elMsg.innerText = "OBSTACOL DETECTAT";
+                    elDist.style.color = "var(--neon-orange)";
+                    card.style.borderColor = "var(--neon-orange)";
+                    card.style.boxShadow = "0 0 30px rgba(255, 157, 0, 0.3)";
+                }
             }
         });
 
-        // Comanda LED (Ham Ham)
+        // 2. ASCULTARE BUTON FIZIC
+        let lastBtnVal = null;
+        db.ref('trigger_buton').on('value', (snapshot) => {
+            const val = snapshot.val();
+            const elStatus = document.getElementById('btn-status');
+            if (lastBtnVal !== null && val != lastBtnVal) {
+                elStatus.innerText = "APĂSAT!";
+                elStatus.classList.add("active-alert");
+                setTimeout(() => {
+                    elStatus.innerText = "INACTIV";
+                    elStatus.classList.remove("active-alert");
+                }, 5000); // Rămâne 5 secunde aprins
+            }
+            lastBtnVal = val;
+        });
+
+        // 3. TRIMITERE COMANDĂ HAM HAM
         function triggerHam() {
-            db.ref('comanda_ham').set(1).then(() => alert("Comandă trimisă!"));
+            const btn = document.getElementById('ham-btn');
+            btn.innerText = "TRIMITERE...";
+            db.ref('comanda_ham').set(1).then(() => {
+                btn.innerText = "TRIMIS!";
+                setTimeout(() => { btn.innerText = "Comandă: Ham Ham"; }, 2000);
+            });
         }
-
-        // Status Buton Robot
-        let lastB = null;
-        db.ref('trigger_buton').on('value', (s) => {
-            const v = s.val();
-            const el = document.getElementById('btn-status');
-            if (lastB !== null && v != lastB) {
-                el.innerText = "APĂSAT!"; el.className = "active";
-                setTimeout(() => { el.innerText = "INACTIV"; el.className = ""; }, 5000);
-            }
-            lastB = v;
-        });
     </script>
 </body>
 </html>

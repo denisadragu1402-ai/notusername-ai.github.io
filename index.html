@@ -1,163 +1,108 @@
-
-
 <!DOCTYPE html>
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHO Dashboard - Bi-Directional</title>
+    <title>ECHO Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
     <style>
         :root {
-            --bg-dark: #0d0612; 
-            --card-bg: #1a0f26;
-            --neon-purple: #b050ff;
-            --neon-pink: #ff00ff; 
-            --text-gray: #8e6b9c;
-            --text-light: #d0a0ff;
+            --bg-dark: #0d0612; --card-bg: #1a0f26;
+            --neon-purple: #b050ff; --neon-pink: #ff00ff; 
+            --text-gray: #8e6b9c; --text-light: #d0a0ff;
         }
-
         body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: var(--bg-dark); 
-            color: var(--text-light); 
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); 
+            color: var(--text-light); margin: 0; display: flex;
+            flex-direction: column; align-items: center; justify-content: center; height: 100vh;
         }
-
-        h1 { letter-spacing: 5px; text-shadow: 0 0 10px var(--neon-purple); margin-bottom: 20px; }
-
         .dashboard {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 25px;
-            border: 1px solid var(--neon-purple);
+            background: var(--card-bg); padding: 35px; border-radius: 25px;
+            border: 1px solid var(--neon-purple); text-align: center; width: 350px;
             box-shadow: 0 0 20px rgba(176, 80, 255, 0.2);
-            text-align: center;
-            width: 350px;
         }
-
-        .label { font-size: 0.75em; color: var(--text-gray); text-transform: uppercase; margin-bottom: 10px; }
-        .value { font-size: 3.5em; font-weight: 900; color: var(--neon-purple); margin-bottom: 20px; }
-
-        /* Butonul Interactiv pentru Trimitere Date */
+        .value { font-size: 3.5em; font-weight: 900; color: var(--neon-purple); margin: 15px 0; }
         .btn-ham {
-            background: transparent;
-            border: 2px solid var(--neon-pink);
-            color: var(--neon-pink);
-            padding: 15px 30px;
-            font-size: 1.1em;
-            font-weight: bold;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: 0.3s;
-            text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.2);
-            margin-top: 20px;
+            background: transparent; border: 2px solid var(--neon-pink); color: var(--neon-pink);
+            padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: bold;
+            text-transform: uppercase; transition: 0.3s; margin: 20px 0;
         }
-
-        .btn-ham:hover {
-            background: var(--neon-pink);
-            color: white;
-            box-shadow: 0 0 20px var(--neon-pink);
-        }
-
-        .btn-ham:active { transform: scale(0.95); }
-
-        /* Status primire date (Butonul fizic) */
-        .status-box {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #3d2354;
-        }
-
-        .active-alert {
-            color: var(--neon-pink) !important;
-            animation: pulse 1s infinite;
-            font-weight: bold;
-        }
-
+        .btn-ham:hover { background: var(--neon-pink); color: white; box-shadow: 0 0 15px var(--neon-pink); }
         .footer-tech {
-            position: fixed;
-            bottom: 15px;
-            font-size: 0.7em;
-            color: var(--text-gray);
-            display: flex;
-            gap: 20px;
+            position: fixed; bottom: 20px; font-size: 0.7em; color: var(--text-gray);
+            display: flex; gap: 15px; text-transform: uppercase;
         }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .active-btn { color: var(--neon-pink) !important; animation: pulse 0.5s infinite; font-weight: bold; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
-
     <h1>ECHO SYSTEM</h1>
-
     <div class="dashboard">
-        <div class="label">Distanță Senzor</div>
+        <div style="font-size: 0.7em; color: var(--text-gray);">DISTANȚĂ</div>
         <div id="dist-val" class="value">-- cm</div>
         
-        <div class="label">Control Robot</div>
-        <button class="btn-ham" onclick="trimiteHam()">Comandă: HAM HAM</button>
+        <button class="btn-ham" onclick="triggerHam()">Comandă: HAM HAM</button>
 
-        <div class="status-box">
-            <div class="label">Status Buton Fizic</div>
-            <div id="ham-status" style="color: var(--text-gray);">INACTIV</div>
+        <div style="border-top: 1px solid #3d2354; padding-top: 15px;">
+            <div style="font-size: 0.7em; color: var(--text-gray);">STATUS BUTON FIZIC (PIN 2)</div>
+            <div id="btn-status">INACTIV</div>
         </div>
     </div>
 
     <div class="footer-tech">
-        <span id="net-status">Status: Conectare...</span>
-        <span>Refresh: Live (WebSockets)</span>
+        <span id="net-status">Offline</span> | <span id="live-clock">00:00:00</span> | <span>v1.3</span>
     </div>
 
     <script>
-        const firebaseConfig = {
-            databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app"
-        };
+        // CONFIGURARE (Asigură-te că URL-ul e exact acesta)
+        const firebaseConfig = { databaseURL: "https://echo-bd4aa-default-rtdb.europe-west1.firebasedatabase.app" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. PRIMIRE DATE: Distanța
-        db.ref('sistem/distanta').on('value', (snap) => {
-            document.getElementById('dist-val').innerText = (snap.val() || 0) + " cm";
+        // Ceas Live
+        setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('ro-RO'); }, 1000);
+
+        // 1. ASCULTĂM DISTANȚA (Path: sistem/distanta)
+        db.ref('sistem/distanta').on('value', (s) => { 
+            const d = s.val();
+            const el = document.getElementById('dist-val');
+            el.innerText = d ? d + " cm" : "-- cm";
+            // Se face roz dacă obiectul e sub 15cm
+            el.style.color = d < 15 ? "var(--neon-pink)" : "var(--neon-purple)";
         });
 
-        // 2. PRIMIRE DATE: Status Buton Fizic (de la Arduino/ESP)
-        db.ref('trigger_buton').on('value', (snap) => {
-            const statusEl = document.getElementById('ham-status');
-            if(snap.val() == 1) {
-                statusEl.innerText = "BUTON APĂSAT PE ROBOT!";
-                statusEl.className = "active-alert";
-            } else {
-                statusEl.innerText = "INACTIV";
-                statusEl.className = "";
-            }
-        });
-
-        // 3. TRIMITERE DATE: Comanda HAM HAM de pe site
-        function trimiteHam() {
-            // Scriem în Firebase la o cale nouă numită 'comanda_voce' sau 'ham_ham'
-            // Robotul tău (Arduino) trebuie să asculte această cale
-            db.ref('comanda_ham').set(1);
+        // 2. ASCULTĂM BUTONUL FIZIC (Path: trigger_buton)
+        // Folosim 'value' pentru a vedea când se schimbă numărul în Firebase
+        let lastValue = null;
+        db.ref('trigger_buton').on('value', (s) => {
+            const val = s.val();
+            const el = document.getElementById('btn-status');
             
-            console.log("Comandă trimisă!");
+            if (lastValue !== null && val !== lastValue) {
+                el.innerText = "APĂSAT!";
+                el.className = "active-btn";
+                // Revine la normal după 1 secundă
+                setTimeout(() => {
+                    el.innerText = "INACTIV";
+                    el.className = "";
+                }, 1000);
+            }
+            lastValue = val;
+        });
 
-            // Resetăm după 2 secunde (ca să poată fi trimisă din nou)
-            setTimeout(() => {
-                db.ref('comanda_ham').set(0);
-            }, 2000);
+        // 3. TRIMITEM COMANDA HAM (Path: Comanda_ham)
+        function triggerHam() {
+            console.log("Comandă trimisă...");
+            db.ref('Comanda_ham').set(1);
+            // Nu mai dăm set(0) aici, lăsăm placa Arduino să reseteze la 0 după ce aprinde LED-ul
         }
 
         // Status Conexiune
-        db.ref('.info/connected').on('value', (snap) => {
-            document.getElementById('net-status').innerText = snap.val() ? "Status: Online" : "Status: Offline";
+        db.ref('.info/connected').on('value', (s) => {
+            document.getElementById('net-status').innerText = s.val() ? "Online" : "Offline";
+            document.getElementById('net-status').style.color = s.val() ? "var(--neon-purple)" : "red";
         });
     </script>
 </body>
